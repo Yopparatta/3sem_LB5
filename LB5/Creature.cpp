@@ -1,163 +1,134 @@
 #include "Creature.h"
 
-#include <iostream>
-#include <vcruntime_typeinfo.h>
-
-Creature::Creature(int x, int y, int d, int s, int id)
+Predator::Predator(int x_i, int y_i, int d_i, int k_i, bool birth_i)
 {
-	this->x = x;
-	this->y = y;
-	this->dir = d;
-	this->stepsBeforeChange = s;
-    this->satiety=0;
-    this->step=0;
-    this->id=id;
-    this->dead=false;
+	x = x_i;
+	y = y_i;
+	d = d_i;
+	k = k_i;
+	age = 0;
+	satiety = 0;
+	dead = false;
+	birth = birth_i;
 }
 
-
-void Creature::doStep()
+void Predator::move(const int& Width, const int& Height, const int& Turn)
 {
-    if (!dead){
-    move();
-    eat();
-    multiply();
-    }
-}
-
-int Creature::steps_before_change() const
-{
-return stepsBeforeChange;
-}
-
-int Creature::get_dir() const
-{
-	return dir;
-}
-
-int Creature::get_x() const
+	if ((Turn % k == 0) && (Turn != 0))
+		d++;
+	if (d == 4)
+		d = 0;
+	switch (d)
 	{
-		return x;
+	case UP:
+		y -= 2;
+		if (y < 0)
+			y += Width;
+		break;
+	case RIGHT:
+		x += 2;
+		if (x >= Width)
+			x -= Width;
+		break;
+	case DOWN:
+		y += 2;
+		if (y >= Height)
+			y -= Height;
+		break;
+	case LEFT:
+		x -= 2;
+		if (x < 0)
+			x += Height;
+		break;
 	}
-
-	int Creature::get_y() const
-	{
-		return y;
-	}
-
-	bool Creature::get_dead() const
-	{
-		return dead;
-	}
-
-	void Creature::set_dead(bool dead)
-	{
-		this->dead = dead;
-	}
-
-int Creature::get_id() const
-{
-	return id;
 }
-
-
-Predator::Predator(int x1, int y1, int d, int s, int id) : Creature(x1,y1,d,s, id){}
 
 void Predator::eat()
 {
-    for (int i=0; i < Creatures::Instance().herbivores_vector().size();i++){
-	    if (x == Creatures::Instance().herbivores_vector()[i].get_x() && y == Creatures::Instance().herbivores_vector()[i].get_y())
-	    {
-		    Creatures::Instance().herbivores_vector()[i].set_dead(true);
-            Creatures::Instance().updateh(Creatures::Instance().herbivores_vector()[i]);
-            satiety++;
-            Creatures::Instance().updatep(*this);
-        }
-    }
+	satiety++;
 }
-void Predator::move()
+
+bool Predator::reproduction()
 {
-    if (step%5==0 && step!=0)
-    {
-	    set_dead(true);
-    }
-    switch(dir)
-    {
-    case 0:
-        y=(y+1)%Creatures::Instance().field_h();
-        eat();
-        y=(y+1)%Creatures::Instance().field_h();
-        break;
-    case 1:
-        x=(x+1)%Creatures::Instance().field_w();
-        eat();
-        x=(x+1)%Creatures::Instance().field_h();
-        break;
-    case 2:
-        y=(y-1)%Creatures::Instance().field_h();
-        eat();
-        y=(y-1)%Creatures::Instance().field_h();
-        break;
-    case 3:
-        x=(x-1)%Creatures::Instance().field_w();
-        eat();
-        x=(x-1)%Creatures::Instance().field_h();
-        break;
-    }
-    step++;
-    if (step%stepsBeforeChange==0)
-    {
-	    dir++;
-    }
-    Creatures::Instance().updatep(*this);
-}
-void Predator::multiply()
-{
-	if (satiety%2==0 && satiety!=0)
+	if (satiety == 2)
 	{
-		Creatures::Instance().addp(*new Predator(get_x(),get_y(),get_dir(),steps_before_change(),get_id()));
+		cout << "У нас пополнение среди волков!" << endl;
+		satiety = 0;
+		return true;
+	}
+	return false;
+}
+
+void Predator::death()
+{
+	if (age == 10)
+	{
+		cout << "Волк умер от старости. Навсегда в наших серждцах." << endl;
+		dead = true;
 	}
 }
 
+Herbivore::Herbivore(int x_i, int y_i, int d_i, int k_i, bool birth_i)
+{
+	x = x_i;
+	y = y_i;
+	d = d_i;
+	k = k_i;
+	age = 0;
+	dead = false;
+	birth = birth_i;
+}
 
-
-Herbivore::Herbivore(int x1, int y1, int d, int s, int id) : Creature(x1,y1,d,s,id){}
+void Herbivore::move(const int& Width, const int& Height, const int& Turn)
+{
+	if ((Turn % k == 0) && (Turn != 0))
+		d++;
+	if (d == 4)
+		d = 0;
+	switch (d)
+	{
+	case UP:
+		y--;
+		if (y < 0)
+			y += Height;
+		break;
+	case RIGHT:
+		x++;
+		if (x >= Width)
+			x -= Width;
+		break;
+	case DOWN:
+		y++;
+		if (y >= Height)
+			y -= Height;
+		break;
+	case LEFT:
+		x--;
+		if (x < 0)
+			x += Width;
+		break;
+	}
+}
 
 void Herbivore::eat()
 {
-	satiety++;
-    Creatures::Instance().updateh(*this);
+	dead = true;
+	cout << "Волк съел кролика" << endl;
 }
-void Herbivore::move()
+
+bool Herbivore::reproduction()
 {
-    switch(dir)
-    {
-    case 0:
-        y=(y+1)%Creatures::Instance().field_h();
-        break;
-    case 1:
-        x=(x+1)%Creatures::Instance().field_w();
-        break;
-    case 2:
-        y=(y-1)%Creatures::Instance().field_h();
-        break;
-    case 3:
-        x=(x-1)%Creatures::Instance().field_w();
-        break;
-    }
-    step++;
-    if (step%stepsBeforeChange==0)
-    {
-	    dir++;
-    }
-    Creatures::Instance().updateh(*this);
-}
-void Herbivore::multiply()
-{
-	if (satiety%5==0 && satiety!=0)
+	if (age%5==0 && age!=0)
 	{
-		Creatures::Instance().addh(*new Herbivore(get_x(),get_y(),get_dir(),steps_before_change(),get_id()));
+		return true;
 	}
-    satiety++;
-    Creatures::Instance().updateh(*this);
+	return false;
+}
+
+void Herbivore::death()
+{
+	if (age == 15)
+	{
+		dead = true;
+	}
 }

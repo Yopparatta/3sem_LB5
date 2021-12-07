@@ -1,100 +1,143 @@
-﻿#include "Creatures.h"
-#include "Creature.h"
-#include <iostream>
+﻿#include "Creature.h"
+#include <chrono>
 #include <thread>
 
 
-using namespace std;
-
-int main()
+void main()
 {
-	int fieldH=0, fieldW=0, steps=0, herb,pred;
-	int x=0,y=0,d=0,k=0;
-    setlocale(LC_ALL,"Russian");
-    cout << "Введите размеры поля и количество ходов (Высота Ширина Ходы)" << endl;
-		while (!(cin >> fieldH >> fieldW >> steps))
-		{
-			cin.clear();
-			cin.ignore(INT_MAX, '\n');
-			cout << "Неверные данные. Попробуйте еще раз\n";
-		}
-	Creatures::Instance().set_field_h(fieldH);
-	Creatures::Instance().set_field_w(fieldW);
-	cout << "Введите количество хищников и жертв (Жертвы Хищники)" << endl;
-		while (!(cin >> herb >> pred))
-		{
-			cin.clear();
-			cin.ignore(INT_MAX, '\n');
-			cout << "Неверные данные. Попробуйте еще раз\n";
-		}
-		for (int i=0;i<pred;i++){
-			cout << "Введите координаты, направление, ходы для смены направления (X Y Направление Ходы)" << endl;
-			while (!(cin >> x >> y >> d >> k))
-			{
-				cin.clear();
-				cin.ignore(INT_MAX, '\n');
-				cout << "Неверные данные. Попробуйте еще раз\n";
-			}
-			Creatures::Instance().addp(*new Predator(x,y,d,k,i));
+	setlocale(LC_ALL, "RUS");
 
+	vector<Animals*> a;
+	int N, Width, Height, R, W, x, y, d, k;
+
+	cout << "Введите размеры поля и количество ходов (Высота Ширина Ходы)"<<endl;
+	while (!(cin >> Width >> Height>> N))
+		{
+			cin.clear();
+			cin.ignore(INT_MAX, '\n');
+			cout << "Неверные данные. Попробуйте еще раз\n";
 		}
-	for (int i=0;i<herb;i++){
-			cout << "Введите координаты, направление, ходы для смены направления (X Y Направление Ходы)" << endl;
+	cout << "Введите количество хищников и жертв (Жертвы Хищники)" << endl;
+	while (!(cin >> R >> W))
+		{
+			cin.clear();
+			cin.ignore(INT_MAX, '\n');
+			cout << "Неверные данные. Попробуйте еще раз\n";
+		}
+
+	vector <vector<int>> Vec(Width, vector<int>(Height));
+
+	Herbivore* v;
+	Predator* p;
+
+	for (int i = 0; i < Width; i++)
+		for (int j = 0; j < Height; j++)
+			Vec[k][j] = 0;
+
+	for (int i = 0; i < R; i++)
+	{
+		cout << "Введите координаты, направление, ходы для смены направления (X Y Направление Ходы)" << endl;
 			while (!(cin >> x >> y >> d >> k))
 			{
 				cin.clear();
 				cin.ignore(INT_MAX, '\n');
 				cout << "Неверные данные. Попробуйте еще раз\n";
 			}
-		Creatures::Instance().addh(*new Herbivore(x,y,d,k,i));
-		}
-	int counter=0;
-	for (int m=0;m<steps;m++)
+		v = new Herbivore(x, y, d, k, false);
+		a.push_back(v);
+	}
+
+	for (int i = 0; i < W; i++)
 	{
-		
-		for (Predator element : Creatures::Instance().predators_vector())
+		cout << "Введите координаты, направление, ходы для смены направления (X Y Направление Ходы)" << endl;
+			while (!(cin >> x >> y >> d >> k))
+			{
+				cin.clear();
+				cin.ignore(INT_MAX, '\n');
+				cout << "Неверные данные. Попробуйте еще раз\n";
+			}
+		p = new Predator(x, y, d, k, false);
+		a.push_back(p);
+	}
+
+	for (int l = 0; l < a.size(); l++)
+	{
+		if (l < R)
 		{
-			element.doStep();
+			Vec[a[l]->gety()][a[l]->getx()]++;
 		}
-		for (Herbivore element : Creatures::Instance().herbivores_vector())
+		else
 		{
-			element.doStep();
+			Vec[a[l]->gety()][a[l]->getx()]--;
 		}
 	}
-	for (int i=0;i<fieldH;i++)
+
+	for (int i = 0; i < N; i++)
+	{
+		for (k = 0; k < Width; k++)
+			for (int j = 0; j < Height; j++)
+				Vec[k][j] = 0;
+		for (int j = 0; j < a.size(); j++)
+		{
+			if ((a[j]->getdead()) || (a[j]->getbirth()))
+				continue;
+			a[j]->move(Width, Height, i);
+			if (j >= R)
 			{
-				for (int j=0;j<fieldW;j++)
+				for (k = 0; k < R; k++)
 				{
-					for (Herbivore element : Creatures::Instance().herbivores_vector())
+					if ((a[j]->getx() == a[k]->getx()) && (a[j]->gety() == a[k]->gety()))
 					{
-						if ((element.get_x()==j && element.get_y()==i) && !element.get_dead())
-							{
-								counter++;
-							}
+						a[j]->eat();
+						a[k]->eat();
 					}
-					for (Predator element : Creatures::Instance().predators_vector())
-					{
-						if ((element.get_x()==j && element.get_y()==i) && !element.get_dead())
-							{
-								counter--;
-							}
-					}
-					cout << counter;
-					counter=0;
 				}
-				cout << endl;
 			}
-	
-    //system("cls");
+			a[j]->addyear();
+			
+			if (a[j]->reproduction())
+			{
+				if (j < R)
+				{
+					vector<Animals*>::iterator it = a.begin();
+					advance(it, R);
+					a.insert(it, new Herbivore(a[j]->getx(), a[j]->gety(), a[j]->getd(), a[j]->getk(), true));
+					R++;
+				}
+				else
+				{
+					a.insert(a.end(), new Predator(a[j]->getx(), a[j]->gety(), a[j]->getd(), a[j]->getk(), true));
+					W++;
+				}
+			}
+			a[j]->death();
+		}
+
+		for (int l = 0; l < a.size(); l++)
+		{
+			if (a[l]->getbirth())
+				a[l]->setbirth(false);
+			if ((l < R) && (a[l]->getdead() == false))
+			{
+				Vec[a[l]->gety()][a[l]->getx()]++;
+			}
+			else if (a[l]->getdead() == false)
+			{
+				Vec[a[l]->gety()][a[l]->getx()]--;
+			}
+		}
+
+		system("cls");
+		for (auto element : Vec)
+		{
+			for (auto item : element)
+				if (item == 0)
+					cout << '*' << ' ';
+				else
+					cout << item << ' ';
+			cout << endl;
+		}
+		this_thread::sleep_for(2s);
+		
+	}
 }
-
-
-/*
- *
-3 3 3
-2 1
-1 2 1 1
-1 1 0 2
-0 2 1 2
- *
- */
